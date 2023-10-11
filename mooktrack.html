@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="icon" href="https://cdn.discordapp.com/attachments/1062777666899562528/1148650886487359578/kirbz.svg">
+    <title>MookTrack v2</title>
+
+    <style>
+        body {
+            color: #EFF0F2;
+            font-family: sans-serif;
+            background-color: #2A2E32;
+        }
+
+        input[type="text"] {
+            background-color: #686771;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        input[type="button"] {
+            background-color: #2A2E32;
+            padding: 8px 16px;
+            border: 2px solid #1F75B3;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #0098C8;
+        }
+
+        input[type="button"]:hover {
+            background-color: #686771;
+            padding: 8px 16px;
+            border: 2px solid #1F75B3;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #0098C8;
+        }
+
+        input[type="button"]:disabled {
+            background-color: #2A2E32;
+            padding: 8px 16px;
+            border: 2px solid #686771;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #686771;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        td {
+            border: 3px solid #8A8D8F;
+            height: 4em;
+            width: 4em;
+            padding-left: 2em;
+            padding-right: 2em;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .info-container {
+            display: grid;
+            width: 90vw;
+            grid-template-rows: repeat(3, 1fr);
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+
+        .info-cell {
+            padding-top: 1em;
+            padding-bottom: 1em;
+            font-weight: bold;
+            font-size: 16px;
+        }
+    </style>
+    <script>
+        var startTime = 0; // time in milliseconds (epoch)
+        var oldOpals = 0; // to calculate shard rollover
+        var newOpals = 0;
+        var apiUrl = 'https://api.hypixel.net/player';
+        var uuid = "";
+        var apiKey = "";
+
+        function initialCall() {
+            uuid = document.getElementById("uuid").value;
+            apiKey = document.getElementById("apiKey").value;
+
+            document.getElementById("uuid").disabled = true;
+            document.getElementById("apiKey").disabled = true;
+
+            fetch("https://api.hypixel.net/player?key=" + apiKey + "&uuid=" + uuid)
+                .then(function (response) {
+                    if (response.status === 200) {
+                        return response.json();
+                    } else {
+                        throw new Error('API request failed');
+                    }
+                })
+                .then(function (data) {
+                    document.getElementById('startingWins').textContent = data['player']['stats']['SkyWars']['wins_solo_normal'];
+                    document.getElementById('startingLosses').textContent = data['player']['stats']['SkyWars']['losses_solo_normal'];
+                    document.getElementById('startingWL').textContent = (data['player']['stats']['SkyWars']['wins_solo_normal'] / data['player']['stats']['SkyWars']['losses_solo_normal']).toFixed(2);
+                    document.getElementById('startingKills').textContent = data['player']['stats']['SkyWars']['kills_solo_normal'];
+                    document.getElementById('startingDeaths').textContent = data['player']['stats']['SkyWars']['deaths_solo_normal'];
+                    document.getElementById('startingKD').textContent = (data['player']['stats']['SkyWars']['kills_solo_normal'] / data['player']['stats']['SkyWars']['deaths_solo_normal']).toFixed(2);
+                    document.getElementById('startingXP').textContent = data['player']['stats']['SkyWars']['skywars_experience'].toFixed(2);
+                    document.getElementById('startingHeads').textContent = data['player']['stats']['SkyWars']['heads'];
+                    document.getElementById('startingSouls').textContent = data['player']['stats']['SkyWars']['shard'];
+                    document.getElementById('startingCoins').textContent = data['player']['stats']['SkyWars']['coins'];
+                    oldOpals = data['player']['stats']['SkyWars']['opals']
+                })
+                .catch(function (error) {
+                    console.error('Error:', error);
+                });
+        }
+
+        var startTime = 0;
+        var timerInterval;
+        function startTimer() {
+            startTime = new Date().getTime();
+            timerInterval = setInterval(function () {
+                var currentTime = new Date().getTime();
+                var elapsedTimeInSeconds = Math.floor((currentTime - startTime) / 1000);
+                document.getElementById("sessionTime").textContent = `Time: ${new Date(elapsedTimeInSeconds * 1000).toISOString().slice(11, 19)}`;
+                document.getElementById("sessionXpHourly").textContent = `XP/h: ${((document.getElementById('currentXP').textContent - document.getElementById('startingXP').textContent) / (elapsedTimeInSeconds / 3600)).toFixed(2)}`;
+            }, 1000);
+        }
+
+        var updateCount = 1;
+        var failedCount = 1;
+        function update() { // call every 5s to auto update
+            timerInterval = setInterval(function () {
+                fetch("https://api.hypixel.net/player?key=" + apiKey + "&uuid=" + uuid)
+                    .then(function (response) {
+                        if (response.status === 200) {
+                            return response.json();
+                        } else {
+                            throw new Error('API request failed');
+                        }
+                    })
+                    .then(function (data) {
+                        document.getElementById('currentWins').textContent = data['player']['stats']['SkyWars']['wins_solo_normal'];
+                        document.getElementById('currentLosses').textContent = data['player']['stats']['SkyWars']['losses_solo_normal'];
+                        document.getElementById('currentWL').textContent = (data['player']['stats']['SkyWars']['wins_solo_normal'] / data['player']['stats']['SkyWars']['losses_solo_normal']).toFixed(2).toString();
+                        document.getElementById('currentKills').textContent = data['player']['stats']['SkyWars']['kills_solo_normal'];
+                        document.getElementById('currentDeaths').textContent = data['player']['stats']['SkyWars']['deaths_solo_normal'];
+                        document.getElementById('currentKD').textContent = (data['player']['stats']['SkyWars']['kills_solo_normal'] / data['player']['stats']['SkyWars']['deaths_solo_normal']).toFixed(2).toString();
+                        document.getElementById('currentXP').textContent = data['player']['stats']['SkyWars']['skywars_experience'].toFixed(2).toString();
+                        document.getElementById('currentHeads').textContent = data['player']['stats']['SkyWars']['heads'];
+                        document.getElementById('currentSouls').textContent = data['player']['stats']['SkyWars']['shard'];
+                        document.getElementById('currentCoins').textContent = data['player']['stats']['SkyWars']['coins'];
+
+                        newOpals = data['player']['stats']['SkyWars']['opals']
+
+                        document.getElementById('updateCount').textContent = `Update Count: ${updateCount++}`;
+
+                        document.getElementById('sessionWins').textContent = `Wins: ${document.getElementById('currentWins').textContent - document.getElementById('startingWins').textContent}`;
+                        document.getElementById('sessionKills').textContent = `Kills: ${document.getElementById('currentKills').textContent - document.getElementById('startingKills').textContent}`;
+                        document.getElementById('session15Def').textContent = `15 Deficit: ${(document.getElementById('currentDeaths').textContent - document.getElementById('startingDeaths').textContent) * 15 - (document.getElementById('currentKills').textContent - document.getElementById('startingKills').textContent)}`;
+                        document.getElementById('sessionHeads').textContent = `Heads: ${document.getElementById('currentHeads').textContent - document.getElementById('startingHeads').textContent}`;
+                        document.getElementById('sessionLosses').textContent = `Losses: ${document.getElementById('currentLosses').textContent - document.getElementById('startingLosses').textContent}`;
+                        document.getElementById('sessionDeaths').textContent = `Deaths: ${document.getElementById('currentDeaths').textContent - document.getElementById('startingDeaths').textContent}`;
+                        document.getElementById('session13Def').textContent = `13 Deficit: ${(document.getElementById('currentDeaths').textContent - document.getElementById('startingDeaths').textContent) * 13 - (document.getElementById('currentKills').textContent - document.getElementById('startingKills').textContent)}`;
+                        document.getElementById('sessionXp').textContent = `XP: ${document.getElementById('currentXP').textContent - document.getElementById('startingXP').textContent}`;
+                        document.getElementById('sessionSouls').textContent = `Souls: ${document.getElementById('currentSouls').textContent - document.getElementById('startingSouls').textContent + (1500 * (newOpals - oldOpals))} `;
+                        document.getElementById('sessionWLR').textContent = `WLR: ${parseFloat(document.getElementById('currentWins').textContent - document.getElementById('startingWins').textContent) / parseFloat(document.getElementById('currentLosses').textContent - document.getElementById('startingLosses').textContent)}`;
+                        document.getElementById('sessionKDR').textContent = `KDR: ${parseFloat(document.getElementById('currentKills').textContent - document.getElementById('startingKills').textContent) / parseFloat(document.getElementById('currentDeaths').textContent - document.getElementById('startingDeaths').textContent)}`;
+                        document.getElementById('session10Def').textContent = `10 Deficit: ${(document.getElementById('currentDeaths').textContent - document.getElementById('startingDeaths').textContent) * 10 - (document.getElementById('currentKills').textContent - document.getElementById('startingKills').textContent)} `;
+                        document.getElementById('sessionCoins').textContent = `Coins: ${document.getElementById('currentCoins').textContent - document.getElementById('startingCoins').textContent}`;
+                    })
+                    .catch(function (error) {
+                        document.getElementById('failedCount').textContent = `Failed: ${failedCount++}`;
+                        console.error('Error:', error);
+                    });
+            }, 5000);
+        }
+    </script>
+</head>
+
+<body style="padding-left: 40px; padding-top: 8px;">
+
+    <h1 style="color: #1F75B3">MookTrack</h1>
+
+    <p>
+        <label for="apiKey">Enter API Key:</label>
+        <input type="text" id="apiKey" value="api key here">
+    </p>
+    <p>
+        <label for="uuid">Enter UUID:</label>
+        <input type="text" id="uuid" value="860f78caadcd4d4589480547de738bf3">
+    </p>
+
+    <input type="button" value="First Load" onclick="initialCall();this.disabled = true;">
+    <input type="button" value="Start Session" onclick="startTimer();update();this.disabled = true;">
+    <h2>Starting Stats</h2>
+    <table>
+        <tr>
+            <td>Wins</td>
+            <td>Losses</td>
+            <td>WL</td>
+            <td>Kills</td>
+            <td>Deaths</td>
+            <td>KD</td>
+            <td>XP</td>
+            <td>Heads</td>
+            <td>Souls</td>
+            <td>Coins</td>
+        </tr>
+        <tr>
+            <td id="startingWins">0</td>
+            <td id="startingLosses">0</td>
+            <td id="startingWL">0</td>
+            <td id="startingKills">0</td>
+            <td id="startingDeaths">0</td>
+            <td id="startingKD">0</td>
+            <td id="startingXP">0</td>
+            <td id="startingHeads">0</td>
+            <td id="startingSouls">0</td>
+            <td id="startingCoins">0</td>
+        </tr>
+    </table>
+    <br>
+    <h2>Current Stats</h2>
+    <table>
+        <tr>
+            <td>Wins</td>
+            <td>Losses</td>
+            <td>WL</td>
+            <td>Kills</td>
+            <td>Deaths</td>
+            <td>KD</td>
+            <td>XP</td>
+            <td>Heads</td>
+            <td>Souls</td>
+            <td>Coins</td>
+        </tr>
+        <tr>
+            <td id="currentWins">0</td>
+            <td id="currentLosses">0</td>
+            <td id="currentWL">0</td>
+            <td id="currentKills">0</td>
+            <td id="currentDeaths">0</td>
+            <td id="currentKD">0</td>
+            <td id="currentXP">0</td>
+            <td id="currentHeads">0</td>
+            <td id="currentSouls">0</td>
+            <td id="currentCoins">0</td>
+        </tr>
+    </table>
+    <br>
+    <h2>Session Stats</h2>
+    <div class="info-container">
+        <div class="info-cell" id="sessionWins">Wins: </div>
+        <div class="info-cell" id="sessionKills">Kills: </div>
+        <div class="info-cell" id="session15Def">15 Deficit: </div>
+        <div class="info-cell" id="sessionTime">Time: 00:00:00</div>
+        <div class="info-cell" id="sessionHeads">Heads: </div>
+        <div class="info-cell" id="updateCount">Update: 0</div>
+        <div class="info-cell" id="sessionLosses">Losses: </div>
+        <div class="info-cell" id="sessionDeaths">Deaths: </div>
+        <div class="info-cell" id="session13Def">13 Deficit: </div>
+        <div class="info-cell" id="sessionXp">XP: </div>
+        <div class="info-cell" id="sessionSouls">Souls: </div>
+        <div class="info-cell" id="failedCount">Failed: 0</div>
+        <div class="info-cell" id="sessionWLR">WLR: </div>
+        <div class="info-cell" id="sessionKDR">KDR: </div>
+        <div class="info-cell" id="session10Def">10 Deficit: </div>
+        <div class="info-cell" id="sessionXpHourly">XP/h: </div>
+        <div class="info-cell" id="sessionCoins">Coins: </div>
+    </div>
+</body>
+
+</html>
